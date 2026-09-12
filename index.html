@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLM R&D — Mold M2-0053 · Jobs demo</title>
+<style>
+  :root {
+    --bg: #e6eee6; --panel: #fff; --ink: #2c3832; --muted: #6d7b74;
+    --line: #d5dfd6; --green: #3a6f5e; --green2: #4a7d6c; --amber: #c47b12;
+    --red: #d94841; --okbg: #e7f4ec; --ok: #2f7a55;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
+  body { padding: 18px; }
+  .panel { max-width: 1280px; margin: 0 auto; background: var(--panel); border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(40,60,50,.08); overflow: hidden; }
+  .head { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px;
+    padding: 12px 20px 10px; border-bottom: 1px solid var(--line); }
+  .k { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .v { font-size: 13px; font-weight: 700; }
+  .badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+  .ok { background: var(--okbg); color: var(--ok); }
+  .rew { background: #fff4e0; color: var(--amber); }
+  .blk { background: #fdecea; color: var(--red); }
+  .tabs { display: flex; align-items: center; gap: 22px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+  .tabs a { color: var(--muted); text-decoration: none; font-weight: 600; padding: 11px 0;
+    border-bottom: 2px solid transparent; font-size: 14px; cursor: pointer; }
+  .tabs a.on { color: var(--ink); border-bottom-color: #1f2a26; }
+  .tabs .right { margin-left: auto; display: flex; gap: 8px; padding: 7px 0; }
+  .btn { border: 0; border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.save { background: var(--green2); color: #fff; }
+  .btn.jobs { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .btn.primary { background: var(--green); color: #fff; }
+  .btn.ghost { background: #fff; border: 1px solid var(--line); }
+  .btn.danger { background: #fff; color: var(--red); border: 1px solid #f0c2bc; }
+  .body { padding: 16px 20px 20px; }
+  .crumbs { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .link { color: var(--green); font-weight: 700; text-decoration: none; cursor: pointer; }
+  h2 { font-size: 22px; margin: 0 0 4px; }
+  h3 { font-size: 16px; margin: 0 0 8px; }
+  .meta { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+  .banner { background: #fff4e0; color: #8a5a12; border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; font-weight: 700; margin: 0 0 10px; }
+  .banner.block { background: #fdecea; color: #8a2a24; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-size: 11px; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .hint { color: var(--muted); font-size: 13px; }
+  .stepper { position: relative; display: grid; grid-template-columns: repeat(9, 1fr); margin: 6px 4px 8px; }
+  .stepper::before { content: ""; position: absolute; left: calc(100% / 18); right: calc(100% / 18);
+    top: 17px; height: 3px; background: var(--line); z-index: 0; }
+  .step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    text-align: center; min-width: 0; }
+  .dot { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--line); background: #fff; font-weight: 700; font-size: 13px; color: var(--muted); }
+  .done .dot { background: var(--green); color: #fff; border-color: var(--green); }
+  .now .dot { background: var(--amber); color: #fff; border-color: var(--amber); }
+  .label { margin-top: 7px; font-size: 12px; font-weight: 700; line-height: 1.15; }
+  .items { margin-top: 8px; width: 100%; display: flex; flex-direction: column; gap: 4px;
+    padding: 0 6px; box-sizing: border-box; text-align: left; }
+  .item { position: relative; padding-left: 12px; font-size: 12px; line-height: 1.2; color: #3a4540; }
+  .item::before { content: ""; position: absolute; left: 0; top: 5px; width: 5px; height: 5px;
+    border-radius: 50%; background: #2c3832; }
+  .cols { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 36px; margin-top: 12px; }
+  .checks label { display: flex; gap: 8px; align-items: flex-start; margin: 5px 0; font-size: 13px; }
+  .drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 10px; text-align: center;
+    color: var(--muted); font-size: 12.5px; margin: 8px 0 10px; cursor: pointer; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .log { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(20,30,26,.45); z-index: 20;
+    align-items: center; justify-content: center; }
+  .modal.on { display: flex; }
+  .sheet { background: #fff; border-radius: 12px; padding: 22px; width: min(560px, 92vw); }
+  .toast { display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1f2a26; color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 700; z-index: 30; }
+  .note { background: #f6f8f6; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="head">
+    <div><div class="k">Product</div><div class="v">Vacuum Blood Collection Needle</div></div>
+    <div><div class="k">Mold name</div><div class="v">Vacuum Blood Collection Needle Mold-Type A</div></div>
+    <div><div class="k">Status</div><div class="v" id="mold-status"><span class="badge ok">In Use</span></div></div>
+    <div><div class="k">Factory</div><div class="v">KDL</div></div>
+    <div><div class="k">Mold code</div><div class="v">M2-0053</div></div>
+    <div><div class="k">Supplier</div><div class="v">Ruifeng Precision</div></div>
+    <div><div class="k">Cavities</div><div class="v">24</div></div>
+    <div><div class="k">Unit price</div><div class="v">¥ 67,276.7</div></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="body" id="view"></div>
+</div>
+<div class="modal" id="modal" onclick="if(event.target.id==='modal') closeModal()"><div class="sheet" id="modal-body"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const GATES = [
+  {id:1, name:"Request", owner:"rd", items:[]},
+  {id:2, name:"DFM", owner:"mm", items:["Product drawing","DFM report"]},
+  {id:3, name:"Quotation", owner:"mm", items:["Quotation"]},
+  {id:4, name:"Mold design", owner:"mm", items:["2D drawing","3D drawing"]},
+  {id:5, name:"Execution", owner:"mm", items:["Steel","Heat treatment","Machining","Assembly"]},
+  {id:6, name:"Tryout", owner:"both", items:["T0 samples","T0 report"]},
+  {id:7, name:"Samples", owner:"rd", items:["T1 samples","T1 report","T2 samples","T2 report"]},
+  {id:8, name:"Approval", owner:"rd", items:["Approval report"]},
+  {id:9, name:"Production", owner:"rd", items:["Production"]},
+];
+const CHECKS = {
+  5: ["Steel received","Heat treatment","Machining complete","Assembly complete"],
+  6: ["T0 shots attached","Dimensional report vs drawing","Vision test on assembly machine","Cap removal / retention in spec"],
+  7: ["T1 samples attached","T1 report vs drawing","T2 samples attached","T2 report vs drawing"],
+  8: ["Approval report attached","Customer sign-off"]
+};
+const state = {
+  tab: "master",
+  openJob: null,
+  jobs: [
+    {id:"MJ-0053-01", type:"Modify", title:"Rib length (needle cap)", drawing:"VBCN-CAP-A Rev.C", qms:"Lane 1",
+     gate:6, status:"open", updated:"11 Sep 2026", files:["T0_shots.zip","CMM_T0.pdf"],
+     checks:{0:true,1:true,2:false,3:false},
+     log:["01 Request by R&D","04 Drawing frozen Rev.C","05 Execution 10 Sep"]},
+    {id:"MJ-0053-00", type:"New mold", title:"Original build", drawing:"Rev.B", qms:"—",
+     gate:9, status:"closed", updated:"01 May 2021", files:[], checks:{},
+     log:["09 Production — In Use 01 May 2021"]},
+  ]
+};
+function toast(m){ const e=document.getElementById("toast"); e.textContent=m; e.style.display="block"; setTimeout(()=>e.style.display="none", 1800); }
+function job(id){ return state.jobs.find(j=>j.id===id); }
+function ownerOf(j){
+  if(j.status==="closed") return "R&D";
+  if(j.status==="blocked") return "R&D (blocked)";
+  const g=GATES[j.gate-1];
+  if(g.owner==="mm") return "Ruifeng Precision";
+  if(g.owner==="both") return "Ruifeng + R&D";
+  return "R&D";
+}
+function closeModal(){ document.getElementById("modal").classList.remove("on"); }
+function openModal(html){ document.getElementById("modal-body").innerHTML=html; document.getElementById("modal").classList.add("on"); }
+function show(tab){ state.tab=tab; state.openJob=null; render(); }
+function openJob(id){ state.openJob=id; state.tab="job"; render(); }
+function newJob(){
+  const n = String(state.jobs.filter(j=>j.id.startsWith("MJ-0053")).length).padStart(2,"0");
+  const j = {id:"MJ-0053-"+n, type:"Modify", title:"New request", drawing:"VBCN-CAP-A Rev.C", qms:"TBD",
+    gate:1, status:"open", updated:"now", files:[], checks:{}, log:["01 Request opened by R&D"]};
+  state.jobs.unshift(j); openJob(j.id);
+}
+function checksFor(j){ return CHECKS[j.gate] || []; }
+function checksDone(j){
+  const list=checksFor(j);
+  if(!list.length) return true;
+  return list.every((_,i)=>j.checks[i]);
+}
+function confirmGate(){
+  const j=job(state.openJob); if(!j || j.status!=="open") return;
+  if(!checksDone(j)){ toast("Checklist incomplete"); return; }
+  j.log.push(String(j.gate).padStart(2,"0")+" "+GATES[j.gate-1].name+" confirmed");
+  j.checks={};
+  if(j.gate===9){ j.status="closed"; toast("Job closed"); }
+  else { j.gate++; toast("Opened gate "+j.gate+" "+GATES[j.gate-1].name); }
+  render();
+}
+function reworkTo(n){
+  const j=job(state.openJob); if(!j || j.status!=="open") return;
+  n=Math.max(1, Math.min(j.gate, Number(n)||5));
+  j.log.push("Rework → "+n+" "+GATES[n-1].name+" — later gates reopened");
+  j.gate=n; j.status="open"; j.checks={}; closeModal();
+  toast("Rework to "+GATES[n-1].name);
+  render();
+}
+function askRework(){
+  const j=job(state.openJob); if(!j || j.status!=="open") return;
+  const opts=GATES.filter(g=>g.id<=j.gate).map(g=>`<option value="${g.id}" ${g.id===5?"selected":""}>${g.id} ${g.name}</option>`).join("");
+  openModal(`<h2 style="margin:0 0 8px">Rework</h2>
+    <p class="hint">This is not Undo. Choose the gate to reopen. Later gates are no longer closed.</p>
+    <label class="f">Rework to</label>
+    <select id="rw">${opts}</select>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn primary" onclick="reworkTo(document.getElementById('rw').value)">Confirm rework</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+function blockEcr(){
+  const j=job(state.openJob); if(!j || j.status!=="open") return;
+  j.status="blocked"; j.qms="ECR";
+  j.log.push("Blocked — ECR-2026-014 opened by R&D");
+  toast("Job blocked. Open ECR.");
+  render();
+}
+function toggleCheck(i){ const j=job(state.openJob); if(j.status!=="open") return; j.checks[i]=!j.checks[i]; render(); }
+function addFile(){ const j=job(state.openJob); if(j.status!=="open") return; j.files.push("upload-"+(j.files.length+1)+".pdf"); toast("File attached"); render(); }
+function openDrawing(){
+  openModal(`<h2 style="margin:0 0 8px">Drawing VBCN-CAP-A Rev.C</h2>
+    <p class="hint">In production this opens DocManager. Here it is an internal link.</p>
+    <p>Needle cap · rib length as-is → to-be. Frozen at gate 4 of MJ-0053-01.</p>
+    <p><a class="link" onclick="closeModal(); openJob('MJ-0053-01')">Open related job MJ-0053-01</a></p>
+    <button class="btn ghost" onclick="closeModal()">Close</button>`);
+}
+function tabsHtml(){
+  const process = state.tab==="jobs" || state.tab==="job";
+  if(process){
+    return `<a class="on" onclick="show('jobs')">Jobs</a>
+      <div class="right">
+        <button class="btn jobs" onclick="show('master')">Back to mold</button>
+        <button class="btn save" onclick="newJob()">New job</button>
+      </div>`;
+  }
+  return `<a class="${state.tab==='master'?'on':''}" onclick="show('master')">Master Data</a>
+    <a class="${state.tab==='files'?'on':''}" onclick="show('files')">Files</a>
+    <div class="right">
+      <button class="btn jobs" onclick="show('jobs')">Jobs</button>
+      <button class="btn save" onclick="toast('Saved')">Save Changes</button>
+    </div>`;
+}
+function renderMaster(){
+  return `<h2>Master Data — M2-0053</h2>
+    <p class="hint">Mold card stays here. Jobs is a button, not a tab.</p>
+    <div class="g3">
+      <div><label class="f">Mold type</label><input value="Injection"></div>
+      <div><label class="f">Owner</label><input value="R&D"></div>
+      <div><label class="f">Steel</label><input value="S136"></div>
+      <div><label class="f">Product</label><input value="Needle cap"></div>
+      <div><label class="f">Lifetime shots</label><input value="1,200,000"></div>
+      <div><label class="f">OEE</label><input value="—"></div>
+    </div>
+    <p class="note">Process (9 gates, drawings, QMS) lives on the job opened from <b>Jobs</b>.</p>`;
+}
+function renderFiles(){
+  return `<h2>Files</h2>
+    <p class="hint">Mold files stay here. Links open the drawing or the related job.</p>
+    <p><a class="link" onclick="openDrawing()">Drawing VBCN-CAP-A Rev.C</a></p>
+    <p><a class="link">3D model — VBCN-CAP-A.step</a></p>
+    <p><a class="link">Photos T0 / T1 / T2</a></p>
+    <p><a class="link" onclick="openJob('MJ-0053-01')">Job MJ-0053-01 — T0 / CMM</a></p>`;
+}
+function renderJobs(){
+  const rows=state.jobs.map(j=>`<tr>
+    <td><a class="link" onclick="openJob('${j.id}')">${j.id}</a></td>
+    <td><select onchange="job('${j.id}').type=this.value; render();">
+      ${["Modify","New mold","Repair"].map(t=>`<option ${j.type===t?"selected":""}>${t}</option>`).join("")}
+    </select></td>
+    <td>${j.status==="closed"?"9 Closed":j.status==="blocked"?"Blocked":j.gate+" "+GATES[j.gate-1].name}</td>
+    <td>${ownerOf(j)}</td>
+    <td><a class="link" onclick="openDrawing()">${j.drawing}</a></td>
+    <td><select onchange="job('${j.id}').qms=this.value; render();">
+      ${["Lane 1","MAP","ECR","TBD","—"].map(t=>`<option ${j.qms===t?"selected":""}>${t}</option>`).join("")}
+    </select></td>
+    <td>${j.updated}</td>
+  </tr>`).join("");
+  return `<h2>Jobs of mold M2-0053</h2>
+    <p class="hint">Not a global list. Only jobs for this mold.</p>
+    <table>
+      <thead><tr><th>Job ID</th><th>Type</th><th>Gate</th><th>Owner</th><th>Drawing</th><th>QMS</th><th>Updated</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+function renderJob(){
+  const j=job(state.openJob); if(!j) return "";
+  const blocked=j.status==="blocked";
+  const closed=j.status==="closed";
+  const open=j.status==="open";
+  const steps=GATES.map(g=>{
+    const cls = g.id<j.gate || closed ? "done" : g.id===j.gate && !closed ? "now" : "";
+    const dot = (g.id<j.gate || closed) ? "✓" : g.id;
+    const items=g.items.map(t=>`<div class="item">${t}</div>`).join("");
+    return `<div class="step ${cls}"><div class="dot">${dot}</div><div class="label">${g.id} ${g.name}</div>${items?`<div class="items">${items}</div>`:""}</div>`;
+  }).join("");
+  const list=checksFor(j);
+  const checks=list.map((t,i)=>`<label><input type="checkbox" ${j.checks[i]?"checked":""} ${open?"":"disabled"} onchange="toggleCheck(${i})"> ${t}</label>`).join("");
+  let banner="";
+  if(blocked) banner=`<div class="banner block">Block: job is stopped. Confirm and Rework stay off until the ECR is closed.</div>`;
+  const canConfirm=open && checksDone(j);
+  return `<div class="crumbs"><span class="link" onclick="show('master')">Master Data M2-0053</span> /
+      <span class="link" onclick="show('jobs')">Jobs</span> / ${j.id}</div>
+    <h2>Mold job ${j.id} — ${j.title}</h2>
+    <p class="meta">${j.type} · <span class="link" onclick="openDrawing()">${j.drawing}</span> · QMS ${j.qms} ·
+      Owner ${ownerOf(j)} · Gate ${closed?"9 Closed":j.gate+" "+GATES[j.gate-1].name} ·
+      <span class="link" onclick="show('master')">Mold card M2-0053</span></p>
+    ${banner}
+    <div class="stepper">${steps}</div>
+    <div class="cols">
+      <div>
+        <h3>${blocked?"Job blocked at gate "+j.gate+" "+GATES[j.gate-1].name: closed?"Job closed":"Current gate: "+j.gate+" "+GATES[j.gate-1].name}</h3>
+        <div class="checks">${checks || "<p class='hint'>No checklist on this gate. Confirm to proceed.</p>"}</div>
+        <div class="drop" onclick="addFile()">${open?"Drop files — click to attach":"Uploads locked"}<br>${j.files.join(" · ")||"—"}</div>
+        <div class="actions">
+          <button class="btn primary" ${canConfirm?"":"disabled"} onclick="confirmGate()">Confirm this gate</button>
+          <button class="btn ghost" ${open?"":"disabled"} onclick="askRework()">Rework</button>
+          <button class="btn danger" ${open?"":"disabled"} onclick="blockEcr()">${blocked?"Blocked — ECR-2026-014":"Block — open ECR"}</button>
+        </div>
+      </div>
+      <div>
+        <h3>Links</h3>
+        <p><span class="link" onclick="openDrawing()">${j.drawing} — open drawing</span></p>
+        <p><span class="link" onclick="show('master')">Mold card M2-0053</span></p>
+        <p><span class="link" onclick="show('jobs')">All jobs of this mold</span></p>
+        <p class="k" style="margin-top:14px">Activity</p>
+        <div class="log">${j.log.map(x=>`<div>${x}</div>`).join("")}</div>
+      </div>
+    </div>`;
+}
+function render(){
+  document.getElementById("tabs").innerHTML = tabsHtml();
+  const view = state.tab==="master"?renderMaster(): state.tab==="files"?renderFiles(): state.tab==="jobs"?renderJobs(): renderJob();
+  document.getElementById("view").innerHTML = view;
+}
+render();
+</script>
+</body>
+</html>
