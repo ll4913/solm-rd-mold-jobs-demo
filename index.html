@@ -186,7 +186,7 @@ const CHECKS = {
   7: ["T1 samples attached","T1 report vs drawing","T2 samples attached","T2 report vs drawing"],
   8: ["Approval report attached","Customer sign-off"]
 };
-const DEMO_STORAGE_KEY = "solm-mold-jobs-demo-v2";
+const DEMO_STORAGE_KEY = "solm-mold-jobs-demo-v3";
 const defaultJobs = [
   {id:"MJ-0053-01", type:"Modify", title:"Rib length (needle cap)", drawing:"VBCN-CAP-A Rev.C", qms:"Lane 1",
    gate:6, status:"open", updated:"11 Sep 2026", files:["T0_shots.zip","CMM_T0.pdf"],
@@ -200,9 +200,10 @@ function storedJobs(){
   try { const value=JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY)); return Array.isArray(value) && value.length ? value : defaultJobs; }
   catch { return defaultJobs; }
 }
+const requestedView = new URLSearchParams(location.search).get("view");
 const state = {
-  tab: new URLSearchParams(location.search).get("view") === "job" ? "job" : "master",
-  openJob: new URLSearchParams(location.search).get("view") === "job" ? "MJ-0053-01" : null,
+  tab: ["master","files","jobs","job"].includes(requestedView) ? requestedView : "master",
+  openJob: requestedView === "job" ? "MJ-0053-01" : null,
   jobs: storedJobs()
 };
 function toast(m){ const e=document.getElementById("toast"); e.textContent=m; e.style.display="block"; setTimeout(()=>e.style.display="none", 1800); }
@@ -235,7 +236,10 @@ function checksDone(j){
 function confirmGate(){
   const j=job(state.openJob); if(!j || j.status!=="open") return;
   if(!checksDone(j)){ toast("Checklist incomplete"); return; }
-  j.log.push(String(j.gate).padStart(2,"0")+" "+GATES[j.gate-1].name+" · 15 Sep 2026 · "+ownerOf(j)+" · requirements confirmed");
+  const confirmationDate=j.gate===6 ? "12 Sep 2026" : "15 Sep 2026";
+  const confirmingOwner=j.gate===6 ? "R&D + Ruifeng" : ownerOf(j);
+  j.log.push(String(j.gate).padStart(2,"0")+" "+GATES[j.gate-1].name+" · "+confirmationDate+" · "+confirmingOwner+" · requirements confirmed");
+  j.updated=confirmationDate;
   j.checks={};
   if(j.gate===9){ j.status="closed"; toast("Job closed"); }
   else { j.gate++; toast("Opened gate "+j.gate+" "+GATES[j.gate-1].name); }
@@ -245,7 +249,7 @@ function reworkTo(n){
   const j=job(state.openJob); if(!j || j.status!=="open") return;
   n=Math.max(1, Math.min(j.gate, Number(n)||5));
   const reason=(document.getElementById("rw-reason")?.value || "validation issue requires correction").trim();
-  j.log.push("Rework → "+n+" "+GATES[n-1].name+" · 15 Sep 2026 · R&D · "+reason);
+  j.log.push("Rework → "+n+" "+GATES[n-1].name+" · 12 Sep 2026 · R&D · "+reason);
   j.gate=n; j.status="open"; j.checks={}; closeModal();
   toast("Rework to "+GATES[n-1].name);
   persist(); render();
@@ -266,15 +270,16 @@ function askRework(){
 }
 function blockEcr(){
   const j=job(state.openJob); if(!j || j.status!=="open") return;
+  const blockedGate=j.gate;
   j.status="blocked"; j.qms="ECR";
-  j.log.push("06 Validation · 15 Sep 2026 · R&D · blocked: cap retention out of specification; ECR-2026-014 opened");
+  j.log.push(String(blockedGate).padStart(2,"0")+" "+GATES[blockedGate-1].name+" · 12 Sep 2026 · R&D · blocked: cap retention out of specification; ECR-2026-014 opened");
   toast("Job blocked. Open ECR.");
   persist(); render();
 }
 function closeEcr(){
   const j=job(state.openJob); if(!j || j.status!=="blocked") return;
   j.status="open"; j.qms="Lane 1";
-  j.log.push("15 Sep 2026 · ECR-2026-014 closed by R&D · job resumed at Gate 6");
+  j.log.push("15 Sep 2026 · ECR-2026-014 closed by R&D · job resumed at Gate "+j.gate);
   toast("ECR closed. Job resumed.");
   persist(); render();
 }
@@ -305,29 +310,30 @@ function tabsHtml(){
     </div>`;
 }
 function renderMaster(){
-  return `<div class="field-grid">
+  return `<div class="subnav"><a class="on">Master Data</a><a onclick="show('jobs')">Jobs</a><a onclick="show('files')">Files</a><div class="right"><button class="btn save" onclick="newJob()">+ New job</button></div></div>
+    <div class="field-grid">
       <section><h3 class="section-title">Basic Info</h3>
         <label class="f">Mold Name (CN)</label><input value="真空采血针模具-A型">
         <label class="f">Mold Name (EN)</label><input value="Vacuum Blood Collection Needle Mold-Type A">
         <label class="f">Project Number</label><input value="PRJ-9553">
-        <label class="f">Drawing Number</label><input value="VBCN-CAP-A Rev.C">
+        <label class="f">Drawing Number</label><input value="">
         <label class="f">Product</label><input value="Vacuum Blood Collection Needle">
         <label class="f">Mold Code</label><input value="M2-0053">
         <label class="f">Supplier</label><input value="Ruifeng Precision">
         <label class="f">Business Unit</label><input value="BU2-Diagnostics">
-        <div class="field-row two"><div><label class="f">Factory</label><input value="KDL"></div><div><label class="f">Location</label><input value="Taizhou"></div></div>
+        <div class="field-row two"><div><label class="f">Factory</label><input value="KDL"></div><div><label class="f">Location</label><input value="台州"></div></div>
       </section>
       <section><h3 class="section-title">Production &amp; Cost</h3>
         <div class="field-row three"><div><label class="f">Cavities</label><input value="24"></div><div><label class="f">Runner Type</label><input value="Cold Runner"></div><div><label class="f">Cycle Time(s)</label><input value="44"></div></div>
         <div class="field-row three"><div><label class="f">Theoretical Hourly Output</label><input value="1964 pcs/hr" disabled></div><div><label class="f">Actual Hourly Output</label><input value="1492 pcs/hr" disabled></div><div><label class="f">Actual 24H Output</label><input value="35808 pcs/day" disabled></div></div>
-        <label class="f">OEE</label><input value="0.76" style="border-color:#ef4444">
+        <label class="f">OEE</label><input value="0,76" style="border-color:#ef4444">
         <label class="f">Reason for OEE &lt; 0.9</label><input value="Equipment aging causes efficiency decline" style="border-color:#ef4444">
-        <div class="field-row three"><div><label class="f">Quantity</label><input value="3"></div><div><label class="f">Unit Price (¥)</label><input value="67276.7"></div><div><label class="f">Total Amount</label><input value="¥201,830.10" disabled></div></div>
-        <label class="f">Loss Coeff.</label><input value="0.08" style="border-color:#f59e0b">
+        <div class="field-row three"><div><label class="f">Quantity</label><input value="3"></div><div><label class="f">Unit Price (¥)</label><input value="67276,7"></div><div><label class="f">Total Amount</label><input value="¥201,830.10" disabled></div></div>
+        <label class="f">Loss Coeff.</label><input value="0,08" style="border-color:#f59e0b">
         <label class="f">Reasons for Loss</label><input value="Special material loss adjustment" style="border-color:#f59e0b">
-        <div class="field-row two"><div><label class="f">Material</label><input value="PMMA"></div><div><label class="f">Material Loss Coeff.</label><input value="0.02"></div></div>
-        <div class="field-row two"><div><label class="f">Product Weight(g)</label><input value="16.36"></div><div><label class="f">Waste Weight(g)</label><input value="3.98"></div></div>
-        <div class="field-row two"><div><label class="f">Sprue Weight(g)</label><input value="0.64"></div><div><label class="f">Activation Date</label><input value="01/05/2021"></div></div>
+        <div class="field-row two"><div><label class="f">Material</label><input value="PMMA"></div><div><label class="f">Material Loss Coeff.</label><input value="0,02"></div></div>
+        <div class="field-row two"><div><label class="f">Product Weight(g)</label><input value="16,36"></div><div><label class="f">Waste Weight(g)</label><input value="3,98"></div></div>
+        <div class="field-row two"><div><label class="f">Sprue Weight(g)</label><input value="0,64"></div><div><label class="f">Activation Date</label><input value="01/05/2021"></div></div>
       </section>
     </div>`;
 }
@@ -354,12 +360,11 @@ function renderJobs(){
     <td>${j.updated}</td>
   </tr>`).join("");
   return `<div class="subnav"><a onclick="show('master')">Master Data</a><a class="on">Jobs</a><a onclick="show('files')">Files</a><div class="right"><button class="btn save" onclick="newJob()">+ New job</button></div></div>
-    <h2>Jobs of mold M2-0053</h2>
-    <p class="hint">Job history for this mold only. This is not a global jobs list.</p>
     <table>
       <thead><tr><th>Job ID</th><th>Type</th><th>Gate</th><th>Owner</th><th>Drawing</th><th>QMS</th><th>Updated</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+    <p class="hint">Master data (OEE, price, lifetime) stays on Master Data tab. Process lives here.</p>`;
 }
 function renderJob(){
   const j=job(state.openJob); if(!j) return "";
@@ -377,7 +382,8 @@ function renderJob(){
   let banner="";
   if(blocked) banner=`<div class="banner block">Block: job is stopped. Confirm and Rework stay off until the ECR is closed. <button class="btn danger" style="margin-left:8px" onclick="closeEcr()">Close ECR &amp; resume</button></div>`;
   const canConfirm=open && checksDone(j);
-  return `<div class="crumbs"><span class="link" onclick="show('master')">Master Data M2-0053</span> /
+  return `<div class="subnav"><a class="on" onclick="show('jobs')">Jobs</a><div class="right"><button class="btn ghost" onclick="show('jobs')">Back to mold</button><button class="btn save" onclick="newJob()">New job</button></div></div>
+    <div class="crumbs"><span class="link" onclick="show('master')">Master Data M2-0053</span> /
       <span class="link" onclick="show('jobs')">Jobs</span> / ${j.id}</div>
     <h2>Mold job ${j.id} — ${j.title}</h2>
     <p class="meta">${j.type} · <span class="link" onclick="openDrawing()">${j.drawing}</span> · QMS ${j.qms} ·
