@@ -197,7 +197,11 @@ const defaultJobs = [
    log:["09 Production · 01 May 2021 · R&D · released In Use"]},
 ];
 function storedJobs(){
-  try { const value=JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY)); return Array.isArray(value) && value.length ? value : defaultJobs; }
+  try {
+    const value=JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY));
+    if(!Array.isArray(value) || !value.length) return defaultJobs;
+    return value.map(j=>j.status==="blocked" ? {...j, status:"open"} : j);
+  }
   catch { return defaultJobs; }
 }
 const requestedView = new URLSearchParams(location.search).get("view");
@@ -211,7 +215,6 @@ function job(id){ return state.jobs.find(j=>j.id===id); }
 function persist(){ localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state.jobs)); }
 function ownerOf(j){
   if(j.status==="closed") return "R&D";
-  if(j.status==="blocked") return "R&D (blocked)";
   const g=GATES[j.gate-1];
   if(g.owner==="mm") return "Ruifeng Precision";
   if(g.owner==="both") return "Ruifeng + R&D";
@@ -267,21 +270,6 @@ function askRework(){
       <button class="btn primary" onclick="reworkTo(document.getElementById('rw').value)">Confirm rework</button>
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
     </div>`);
-}
-function blockEcr(){
-  const j=job(state.openJob); if(!j || j.status!=="open") return;
-  const blockedGate=j.gate;
-  j.status="blocked"; j.qms="ECR";
-  j.log.push(String(blockedGate).padStart(2,"0")+" "+GATES[blockedGate-1].name+" · 12 Sep 2026 · R&D · blocked: cap retention out of specification; ECR-2026-014 opened");
-  toast("Job blocked. Open ECR.");
-  persist(); render();
-}
-function closeEcr(){
-  const j=job(state.openJob); if(!j || j.status!=="blocked") return;
-  j.status="open"; j.qms="Lane 1";
-  j.log.push("15 Sep 2026 · ECR-2026-014 closed by R&D · job resumed at Gate "+j.gate);
-  toast("ECR closed. Job resumed.");
-  persist(); render();
 }
 function toggleCheck(i){ const j=job(state.openJob); if(j.status!=="open") return; j.checks[i]=!j.checks[i]; persist(); render(); }
 function addFile(){ const j=job(state.openJob); if(j.status!=="open") return; j.files.push("validation-evidence-"+(j.files.length+1)+".pdf"); persist(); toast("File attached"); render(); }
@@ -351,7 +339,7 @@ function renderJobs(){
     <td><select onchange="job('${j.id}').type=this.value; persist(); render();">
       ${["Modify","New mold","Repair"].map(t=>`<option ${j.type===t?"selected":""}>${t}</option>`).join("")}
     </select></td>
-    <td>${j.status==="closed"?"9 Closed":j.status==="blocked"?"Blocked":j.gate+" "+GATES[j.gate-1].name}</td>
+    <td>${j.status==="closed"?"9 Closed":j.gate+" "+GATES[j.gate-1].name}</td>
     <td>${ownerOf(j)}</td>
     <td><a class="link" onclick="openDrawing()">${j.drawing}</a></td>
     <td><select onchange="job('${j.id}').qms=this.value; persist(); render();">
@@ -368,7 +356,6 @@ function renderJobs(){
 }
 function renderJob(){
   const j=job(state.openJob); if(!j) return "";
-  const blocked=j.status==="blocked";
   const closed=j.status==="closed";
   const open=j.status==="open";
   const steps=GATES.map(g=>{
@@ -379,8 +366,6 @@ function renderJob(){
   }).join("");
   const list=checksFor(j);
   const checks=list.map((t,i)=>`<label><input type="checkbox" ${j.checks[i]?"checked":""} ${open?"":"disabled"} onchange="toggleCheck(${i})"> ${t}</label>`).join("");
-  let banner="";
-  if(blocked) banner=`<div class="banner block">Block: job is stopped. Confirm and Rework stay off until the ECR is closed. <button class="btn danger" style="margin-left:8px" onclick="closeEcr()">Close ECR &amp; resume</button></div>`;
   const canConfirm=open && checksDone(j);
   return `<div class="subnav"><a class="on" onclick="show('jobs')">Jobs</a><div class="right"><button class="btn ghost" onclick="show('jobs')">Back to mold</button><button class="btn save" onclick="newJob()">New job</button></div></div>
     <div class="crumbs"><span class="link" onclick="show('master')">Master Data M2-0053</span> /
@@ -389,17 +374,15 @@ function renderJob(){
     <p class="meta">${j.type} · <span class="link" onclick="openDrawing()">${j.drawing}</span> · QMS ${j.qms} ·
       Owner ${ownerOf(j)} · Gate ${closed?"9 Closed":j.gate+" "+GATES[j.gate-1].name} ·
       <span class="link" onclick="show('master')">Mold card M2-0053</span></p>
-    ${banner}
     <div class="stepper">${steps}</div>
     <div class="cols">
       <div>
-        <h3>${blocked?"Job blocked at gate "+j.gate+" "+GATES[j.gate-1].name: closed?"Job closed":"Current gate: "+j.gate+" "+GATES[j.gate-1].name}</h3>
+        <h3>${closed?"Job closed":"Current gate: "+j.gate+" "+GATES[j.gate-1].name}</h3>
         <div class="checks">${checks || "<p class='hint'>No checklist on this gate. Confirm to proceed.</p>"}</div>
         <div class="drop" onclick="addFile()">${open?"Drop T0 photos / CMM PDF — click to attach":"Uploads locked"}<br>${j.files.join(" · ")||"—"}</div>
         <div class="actions">
           <button class="btn primary" ${canConfirm?"":"disabled"} onclick="confirmGate()">Confirm this gate</button>
           <button class="btn ghost" ${open?"":"disabled"} onclick="askRework()">Rework to Execution</button>
-          <button class="btn danger" ${open?"":"disabled"} onclick="blockEcr()">${blocked?"Blocked — ECR-2026-014":"Block — open ECR"}</button>
         </div>
       </div>
       <div>
